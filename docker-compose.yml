@@ -1,0 +1,215 @@
+# ref: https://neon.com/guides/local-development-with-neon
+
+name: safeguard-app
+
+x-backend-common: &backend-common
+  build:
+    context: .
+    dockerfile: backend/Dockerfile
+  environment:
+    - FLASK_ENV=development
+    - FLASK_DEBUG=1
+    - TZ=Australia/Sydney
+    - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+    - DATABASE_URL=${DATABASE_URL}
+    - LOCAL_DATABASE_URL=postgresql+psycopg2://postgres:postgres@main-db:5432/main
+    - TESTING_DATABASE_URL=postgresql://postgres:postgres@test-db:5432/test
+    - CELERY_BROKER_URL=redis://redis:6379/0
+    - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    - REDDIT_CLIENT_ID=${REDDIT_CLIENT_ID}
+    - REDDIT_CLIENT_SECRET=${REDDIT_CLIENT_SECRET}
+    - REDDIT_USER_AGENT=${REDDIT_USER_AGENT}
+    - YOUTUBE_API_KEY=${YOUTUBE_API_KEY}
+    - COINGECKO_API_KEY=${COINGECKO_API_KEY}
+    - GEMINI_API_KEY=${GEMINI_API_KEY}
+    - NEWS_API_KEY=${NEWS_API_KEY}
+    - NEWS_API_KEY_FRONTEND=${NEWS_API_KEY_FRONTEND}
+  volumes:
+    - ./backend:/app
+  networks:
+    - metanet1
+
+services:
+  main-db:
+    container_name: safeguard-main-db
+    image: timescale/timescaledb:latest-pg15
+    command: postgres -d 1
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - '5432:5432'
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=main
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - metanet1
+
+  neon-proxy:
+    container_name: safeguard-neon-proxy
+    image: ghcr.io/timowilhelm/local-neon-http-proxy:main
+    environment:
+      - PG_CONNECTION_STRING=postgres://postgres:postgres@main-db:5432/main
+    ports:
+      - '4444:4444'
+    depends_on:
+      main-db:
+        condition: service_healthy
+
+  test-db:
+    container_name: safeguard-test-db
+    image: timescale/timescaledb:latest-pg15
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: test
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - metanet1
+
+  pgadmin:
+    container_name: safeguard-pgadmin
+    image: dpage/pgadmin4
+    depends_on:
+      - main-db
+    ports:
+      - "5055:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: root
+    restart: unless-stopped
+
+  backend:
+    <<: *backend-common
+    container_name: safeguard-backend
+    ports:
+      - "8080:8080"
+      - "8888:8888"
+    depends_on:
+      main-db:
+        condition: service_healthy
+      test-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: sh -c "flask db upgrade && flask run --reload"
+    healthcheck:
+      test: curl --fail -I http://localhost:8080/api/health || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    container_name: safeguard-frontend
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8080
+      - VITE_NEWS_API_KEY=${NEWS_API_KEY}
+      - NODE_ENV=development
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    networks:
+      - metanet1
+
+  metabase:
+    container_name: safeguard-metabase
+    hostname: metabase
+    image: metabase/metabase:latest
+    volumes:
+      - /dev/urandom:/dev/random:ro
+      - metabase_data:/metabase-data
+    ports:
+      - "3000:3000"
+    environment:
+      - MB_DB_TYPE=postgres
+      - MB_DB_DBNAME=main
+      - MB_DB_PORT=5432
+      - MB_DB_USER=postgres
+      - MB_DB_PASS=postgres
+      - MB_DB_HOST=main-db
+    depends_on:
+      main-db:
+        condition: service_healthy
+    networks:
+      - metanet1
+    healthcheck:
+      test: curl --fail -I http://localhost:3000/api/health || exit 1
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    container_name: safeguard-redis
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - metanet1
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  flower:
+    <<: *backend-common
+    container_name: safeguard-flower
+    ports:
+      - "5555:5555"
+    depends_on:
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    command: celery -A make_celery:celery_app flower --port=5555
+    healthcheck:
+      test: curl --fail -I http://localhost:5555 || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  celery-worker:
+    <<: *backend-common
+    container_name: safeguard-celery-worker
+    depends_on:
+      redis:
+        condition: service_healthy
+      main-db:
+        condition: service_healthy
+    command: celery -A make_celery:celery_app worker --loglevel=info
+
+  celery-beat:
+    <<: *backend-common
+    container_name: safeguard-celery-beat
+    depends_on:
+      redis:
+        condition: service_healthy
+      main-db:
+        condition: service_healthy
+    command: celery -A make_celery:celery_app beat --loglevel=info
+
+volumes:
+  db_data:
+  metabase_data:
+
+networks:
+  metanet1:
+    driver: bridge

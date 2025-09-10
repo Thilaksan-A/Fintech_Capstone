@@ -1,0 +1,122 @@
+stress_response:
+  "Not knowing what to do when the market drops":
+    risk_score: -2
+    emotional_score: 3
+  "Investing without having enough information":
+    rational_score: 3
+  "Not knowing who to trust when friends and media say different things":
+    social_impact: 3
+  "Fear of losing money":
+    fomo_score: 2
+    time_score: -1
+  "I don't get stressed, I stay calm while investing":
+    risk_score: 1
+    rational_score: 1
+    time_score: 1
+
+emotional_reaction:
+  "I would sell immediately":
+    risk_score: -3
+    emotional_score: 4
+    social_impact: 2
+  "I'd panic but wouldn't know what to do":
+    risk_score: -2
+    emotional_score: 3
+    social_impact: 1
+  "I would check the source and decide accordingly":
+    rational_score: 3
+    social_impact: -1
+  "I wouldn't be affected by this kind of news":
+    risk_score: 2
+    emotional_score: -1
+
+risk_perception:
+  "Something I cannot afford to lose":
+    risk_score: -3
+  "Uncertainty but also potential gain":
+    risk_score: -1
+  "Manageable flunctuations":
+    risk_score: 1
+  "There's always some risk where there's opportunity":
+    risk_score: 2
+    rational_score: 1
+
+income_vs_investment_balance:
+  "Less than 5%":
+    risk_score: -1
+  "Between 5% and 15%":
+    time_score: 1
+  "Between 15% and 30%":
+    time_score: 2
+  "More than 30%":
+    time_score: 3
+    risk_score: 1
+
+debt_situation:
+  "Yes, I make monthly payments":
+    risk_score: 1
+    rational_score: 2
+  "Yes, but it's at a low level":
+    risk_score: 1
+  "No, I have no debt":
+    risk_score: -1
+    time_score: 1
+  "I do, but it doesn't affect my investment decisions":
+    risk_score: 1
+
+investment_experience:
+  "Stocks":
+    rational_score: 1
+    social_impact: 1
+  "Cryptocurrency":
+    fomo_score: 2
+    risk_score: 2
+  "Term deposits / gold":
+    risk_score: -1
+    time_score: 1
+  "Real estate":
+    social_impact: 1
+    time_score: 1
+  "I haven't invested before":
+    rational_score: -2
+
+investment_motivation:
+  "To generate passive income":
+    rational_score: 2
+    risk_score: -1
+    social_impact: 1
+  "For future large expenses (house, car, etc.)":
+    rational_score: 1
+    time_score: 1
+  "For retirement":
+    time_score: 3
+    risk_score: -1
+  "To try new things":
+    fomo_score: 1
+  "To learn and have fun":
+    rational_score: 1
+    social_impact: 1
+
+knowledge_level:
+  "I'm a beginner, I have very little knowledge":
+    rational_score: -1
+  "I'm at an intermediate level":
+    rational_score: 1
+    time_score: 1
+  "I understand concepts like technical analysis":
+    rational_score: 2
+  "I've been investing for a long time, I'm experienced":
+    rational_score: 3
+    time_score: 2
+
+investment_personality:
+  "Conservative: I avoid taking risks":
+    risk_score: -3
+  "Balanced: I can handle some risk, but nothing extreme":
+    risk_score: 1
+  "Aggressive: I'm drawn to high-risk, high-reward opportunities":
+    risk_score: 3
+  "Intuitive: I often follow my instincts":
+    emotional_score: 2
+  "Strategic: I plan and execute with discipline":
+    rational_score: 3
