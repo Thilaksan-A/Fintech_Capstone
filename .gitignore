@@ -1,0 +1,47 @@
+# ---- GLOBAL ----
+.DS_Store
+*.pyc
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/
+__pycache__/
+*/__pycache__/
+
+# ---- PYTHON ENV ----
+venv/
+.venv/
+*/venv/
+*/.venv/
+
+# ---- MISC ----
+.env
+.env.*
+*/.env.*
+*.log
+!.env.example
+
+# ---- FRONTEND (React) ----
+*/node_modules/
+*/.next/
+*/build/
+*/dist/
+
+# ---- BACKEND (Flask) ----
+*/instance/
+*/*.sqlite3
+*/*.csv
+*/.Trash*
+*/.pytest*
+
+# ---- FRONTEND (Coverage) ----
+coverage/
+
+# ---- BACKEND (Celery) ----
+celerybeat-schedule
+
+# ---- BACKEND (Test / Coverage) ----
+*.cover
+*.coverage
+coverage.*
+coverage.json
+coverage.xml
+*.cover
